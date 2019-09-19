@@ -1,0 +1,8 @@
+﻿  main.cpp
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(34,7): warning C4101:  'window': unreferenced local variable
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(76,22): warning C4018:  '<': signed/unsigned mismatch
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(122,23): warning C4018:  '<': signed/unsigned mismatch
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(135,22): warning C4018:  '<': signed/unsigned mismatch
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(257,19): warning C4129:  'c': unrecognized character escape sequence
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(255,8): warning C4101:  'cptr': unreferenced local variable
+  JozijoInput.vcxproj -> C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\Debug\JozijoInput.exe
