@@ -33,8 +33,8 @@ int main()
 	SetupKeyCombos();
 	HWND window;
 	AllocConsole();
-	//window = FindWindowA("ConsoleWindowClass", NULL);
-	//ShowWindow(window, 0);
+	window = FindWindowA("ConsoleWindowClass", NULL);
+	ShowWindow(window, 0);
 	dev = new DEVMODE();
 	MessageLoop();
 	return 0;
@@ -47,13 +47,17 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	if (nCode == HC_ACTION)
 	{
 		PKBDLLHOOKSTRUCT key = (PKBDLLHOOKSTRUCT)lParam;
-
+		char keyChar = (char)key->vkCode;
+		
 		if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)
 		{
 
 			//TestKeyCombos();
 			if (SearchForElement(pressed, key->vkCode, sizeOfPressed))
+			{
+				CheckInputs();
 				return CallNextHookEx(NULL, nCode, wParam, lParam);
+			}
 #pragma region ResizePressedArray
 
 			sizeOfPressed++;
@@ -75,9 +79,9 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			}
 			for (int i = 0; i < sizeOfPressed; i++)
 			{
-				std::cout << (char)pressed[i]<<" " ;
+				//std::cout << (char)pressed[i] << " ";
 			}
-			std::cout << "\n";
+			//std::cout << "\n";
 
 #pragma endregion
 
@@ -103,6 +107,8 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			//
 			//	}
 			//}
+			CheckInputs();
+
 		}
 		if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)
 		{
@@ -134,9 +140,9 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			}
 			for (int i = 0; i < sizeOfPressed; i++)
 			{
-				std::cout << (char)pressed[i]<< " ";
+				//std::cout << (char)pressed[i] << " ";
 			}
-			std::cout << "\n";
+			//std::cout << "\n";
 
 #pragma endregion
 
@@ -156,8 +162,19 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			//	}
 			//}
 		}
+		//bool callCheck = true;
+		//for (int i = 0; i < numOfKeyCombos; i++)
+		//{
+		//	if (key->vkCode == keyCombos[i].keyOutput)
+		//		callCheck = false;
+		//}
+		//if (callCheck)
+
+
 	}
-	CheckInputs();
+
+
+
 	return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
@@ -267,32 +284,64 @@ void ReadKeyCombos()
 
 }
 
-//whats currently happening is that the inputs from last frame are not being emptied so when the key up event is called the "number of presses" goes
-//to 0 but then next fram the key up event is called again even though it shouldnt be called until the key combo is actually unpressed.
-//doing it only when the combo is unpressed should cause it to go back to normal and actually possible just straight up work.
 
 void CheckInputs()
 {
 	int numberOfInputsLastFrame = 0;
 	int* lastFramesInputs = sentInputs;
+
 	while (*lastFramesInputs != NULL)
 	{
-		INPUT input = INPUT();
-		input.type = INPUT_KEYBOARD;
-		input.ki.wVk = *lastFramesInputs;
-		input.ki.dwFlags = KEYEVENTF_KEYUP;
-		SendInput(1, &input, sizeof(INPUT));
+
 		numberOfInputsLastFrame++;
 		lastFramesInputs++;
 	}
-	
+
+
 	for (int i = 0; i < numOfKeyCombos; i++)
 	{
 		int* iter = keyCombos[i].requiredKeyPresses;
 		while (*iter != NULL)
 		{
 			if (!SearchForElement(pressed, *iter, sizeOfPressed))
+			{
+				if (SearchForElement(sentInputs, keyCombos[i].keyOutput, numberOfInputsLastFrame))
+				{
+					INPUT input = INPUT();
+					input.type = INPUT_KEYBOARD;
+					input.ki.wVk = keyCombos[i].keyOutput;
+					input.ki.dwFlags = KEYEVENTF_KEYUP;
+					SendInput(1, &input, sizeof(INPUT));
+
+
+					if (numberOfInputsLastFrame == 1)
+					{
+						delete[] sentInputs;
+						sentInputs = new int[1];
+						sentInputs[0] = NULL;
+					}
+					else
+					{
+						int* temp = new int[numberOfInputsLastFrame];
+						int j = 0;
+						for (int k = 0; k < numberOfInputsLastFrame + 1; k++)
+						{
+							if (sentInputs[k] == keyCombos[k].keyOutput)
+								continue;
+							temp[j] = sentInputs[k];
+							j++;
+						}
+
+
+						sentInputs = new int[numberOfInputsLastFrame];
+						memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame - 1));
+						delete[] temp;
+					}
+
+				}
 				break;
+
+			}
 			iter++;
 		}
 		if (*iter == NULL)
@@ -300,14 +349,19 @@ void CheckInputs()
 			INPUT input = INPUT();
 			input.type = INPUT_KEYBOARD;
 			input.ki.wVk = keyCombos[i].keyOutput;
+			input.ki.dwFlags = 0;
 			SendInput(1, &input, sizeof(INPUT));
-			int* temp = new int[numberOfInputsLastFrame + 1];
-			memcpy((void*)temp, sentInputs, sizeof(int) * (numberOfInputsLastFrame + 1));
-			sentInputs = new int[numberOfInputsLastFrame + 2];
-			memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame + 1));
-			sentInputs[numberOfInputsLastFrame] = keyCombos[i].keyOutput;
-			sentInputs[numberOfInputsLastFrame + 1] = NULL;
+			if (!SearchForElement(sentInputs, input.ki.wVk, numberOfInputsLastFrame))
+			{
+				int* temp = new int[numberOfInputsLastFrame + 1];
+				memcpy((void*)temp, sentInputs, (sizeof(int) * (numberOfInputsLastFrame + 1)) * 2);
+				sentInputs = new int[numberOfInputsLastFrame + 2];
+				memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame + 1));
+				sentInputs[numberOfInputsLastFrame] = keyCombos[i].keyOutput;
+				sentInputs[numberOfInputsLastFrame + 1] = NULL;
+			}
 		}
+
 	}
 
 
@@ -326,8 +380,8 @@ void SetupKeyCombos()
 {
 	numOfKeyCombos = 2;
 	keyCombos = new KeyCombo[2];
-	keyCombos[0].keyOutput = (int)'w';
+	keyCombos[0].keyOutput = (int)'W';
 	keyCombos[0].requiredKeyPresses = new int[3]{ 'P', 'O', NULL };
-	keyCombos[1].keyOutput = (int)'a';
+	keyCombos[1].keyOutput = 'A';
 	keyCombos[1].requiredKeyPresses = new int[3]{ 'U', 'I', NULL };
 }
