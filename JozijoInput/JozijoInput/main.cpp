@@ -6,7 +6,6 @@
 #include "KeyCombos.h"
 
 
-
 LRESULT CALLBACK LowLevelKeyboardProc(int, WPARAM, LPARAM);
 void ListenForKeyCode();
 void MessageLoop();
@@ -16,6 +15,8 @@ int GetIndexOfFirstOccurance(int*, int, int);
 void TestKeyCombos();
 void CheckInputsOnAdd();
 void CheckInputsOnRemove();
+void MapKeyOutputs();
+void ReadKeyCombos();
 double start;
 DEVMODE* dev;
 KeyCombo* keyCombos;
@@ -27,42 +28,30 @@ bool recievedInputRecently = false;
 
 INPUT* inputsToSend;
 
-//to be removed when I read from file.
-void SetupKeyCombos();
 
 int main()
 {
 	sentInputs = new int[1]{ NULL };
-	SetupKeyCombos();
+	//SetupKeyCombos();
 	HWND window;
+	ReadKeyCombos();
 	//AllocConsole();
 	//window = FindWindowA("ConsoleWindowClass", NULL);
 	//ShowWindow(window, 0);
-	dev = new DEVMODE();
 	MessageLoop();
 	return 0;
 }
 
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-
-	
-	std::string log = "\n";
-	for (int i = 0; i < sizeOfPressed; i++)
-	{
-		log += pressed[i];
-	}
-	log += "\n";
-	std::cout << log;
-	
-	//std::cout << "asdf";	
+{		
 	if (nCode == HC_ACTION)
 	{
 
 
 		PKBDLLHOOKSTRUCT key = (PKBDLLHOOKSTRUCT)lParam;
 		char keyChar = (char)key->vkCode;
+		//std::cout << keyChar << '\n';
 		//if (!SearchForElement(pressed, key->vkCode, sizeOfPressed))
 		//{
 		//	bool log = true;
@@ -78,20 +67,20 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 		//	//if (key->vkCode == keyCombos[i].keyOutput)
 		//		//std::cout << "\nSpecial key: " << (char)key->vkCode;
 		//}
-		
+
 		//std::cout << "\nkey input action... key was: " << keyChar << "\n";
-		
+
 		if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)
 		{
 			for (int i = 0; i < numOfKeyCombos; i++)
 			{
-				if (keyCombos[i].keyOutput == key->vkCode)
+				if (keyCombos[i].keyOutput == key->scanCode)
 				{
 					return CallNextHookEx(NULL, nCode, wParam, lParam);
 
 				}
 			}
-			//TestKeyCombos();
+			
 			if (SearchForElement(pressed, key->vkCode, sizeOfPressed))
 			{
 				CheckInputsOnAdd();
@@ -114,40 +103,14 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				pressed = new int[sizeOfPressed];
 				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed - 1));
 				pressed[sizeOfPressed - 1] = key->vkCode;
+				CheckInputsOnAdd();
 				delete[]temp;
 
 			}
-			//for (int i = 0; i < sizeOfPressed; i++)
-			//{
-			//	std::cout << (char)pressed[i] << " ";
-			//}
-			//std::cout << "\n";
-
+		
 #pragma endregion
 
-			//asycKey doesnt work in hook
-			//if (GetAsyncKeyState(VK_SHIFT) && GetAsyncKeyState(VK_CONTROL) && GetAsyncKeyState(VK_MENU) && key->vkCode == 0x46)
-			//if (key->vkCode == 0x46 || key->vkCode == VK_LCONTROL || key->vkCode == VK_LMENU || key->vkCode == VK_LSHIFT)
-			//{
-			//	//ShellExecute(nullptr, "open", "C:\\Program Files (x86)\\Windows Media Player\\wmplayer.exe", nullptr, nullptr, SW_SHOW);
-			//
-			//
-			//	if (!SearchForElement(&pressed[0], key->vkCode, 4))
-			//	{
-			//
-			//		for (int i = 0; i < 4; i++)
-			//		{
-			//			if (pressed[i] == '\0')
-			//			{
-			//				pressed[i] = key->vkCode;
-			//				ListenForKeyCode();
-			//				break;
-			//			}
-			//		}
-			//
-			//	}
-			//}
-			
+		
 
 		}
 		if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)
@@ -177,43 +140,18 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				}
 				delete[] pressed;
 				pressed = new int[sizeOfPressed];
-				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed+1));
+				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed + 1));
 				delete[] temp;
 
 			}
-			//for (int i = 0; i < sizeOfPressed; i++)
-			//{
-			//	std::cout << (char)pressed[i] << " ";
-			//}
-			//std::cout << "\n";
+			
 
 #pragma endregion
 
-			//if (key->vkCode == 0x46 || key->vkCode == VK_LCONTROL || key->vkCode == VK_LMENU || key->vkCode == VK_LSHIFT)
-			//{
-			//	if (SearchForElement(&pressed[0], key->vkCode, 4))
-			//	{
-			//		for (int i = 0; i < 4; i++)
-			//		{
-			//			if (pressed[i] == key->vkCode)
-			//			{
-			//
-			//				pressed[i] = '\0';
-			//				break;
-			//			}
-			//		}
-			//	}
-			//}
-			//if (!SearchForElement(pressed, key->vkCode, sizeOfPressed))
-				CheckInputsOnRemove();
+			
+			CheckInputsOnRemove();
 		}
-		//bool callCheck = true;
-		//for (int i = 0; i < numOfKeyCombos; i++)
-		//{
-		//	if (key->vkCode == keyCombos[i].keyOutput)
-		//		callCheck = false;
-		//}
-		//if (callCheck)
+
 
 
 	}
@@ -258,7 +196,7 @@ void MessageLoop()
 
 	while (!GetMessage(&msg, NULL, NULL, NULL))
 	{
-		
+		CheckInputsOnAdd();
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -316,18 +254,73 @@ void TestKeyCombos()
 
 void ReadKeyCombos()
 {
+
+
+
 	char* cptr;
 	FILE* combos;
-	fopen_s(&combos, "$(SolutionDir)\bin\combos.txt", "ifstream");
-	int size = 10;
-	keyCombos = new KeyCombo[size * sizeof(KeyCombo)];
-	for (int i = 0; i < size; i++)
-	{
-		(*keyCombos).requiredKeyPresses = nullptr;
-	}
-	int* ints = new int[2];
-	ints[0] = 2;
+	fopen_s(&combos, "./bin/combos.txt", "rt");
+	if (combos == nullptr)
+		perror("FUCK OFF");
+	fseek(combos, 0, SEEK_END);
+	size_t size = ftell(combos);
+	fseek(combos, 0, SEEK_SET);
 
+	char* contents = (char*)malloc(sizeof(char) * size);//new char[size + 1];
+	fread(contents, sizeof(char), (size + 1) , combos);
+	contents[size] = '\0';
+	std::cout << contents << "\n";
+	int numberOfCombosToRead = 1;
+	for (int i = 0; i < size + 1; i++)
+	{
+		if (contents[i] == ',')
+			numberOfCombosToRead++;
+
+	}
+	numOfKeyCombos = numberOfCombosToRead;
+	delete[] keyCombos;
+	keyCombos = new KeyCombo[numberOfCombosToRead];
+	std::string inputs = "";
+	bool readingOut = false;
+	int index = 0;
+	for (int i = 0; i < size + 1; i++)
+	{
+		if (index >= numberOfCombosToRead)
+			break;
+		if (contents[i] == ' ' || contents[i] == '"')
+			continue;
+		if (contents[i] == ',')
+		{
+			index++;
+			continue;
+		}
+		if (contents[i] == ':')
+		{
+			readingOut = true;
+			int strSize = inputs.length();
+			const char * chars = inputs.c_str();
+			keyCombos[index].requiredKeyPresses = new int[strSize+1];
+			for (int j = 0; j < strSize; j++)
+			{
+				keyCombos[index].requiredKeyPresses[j] = (int)chars[j];
+			}
+			inputs = "";
+			keyCombos[index].requiredKeyPresses[strSize] = NULL;
+			continue;
+		}
+
+		if (!readingOut)
+		{
+
+			inputs += contents[i];
+
+			continue;
+		}
+		keyCombos[index].keyOutput = (int)contents[i];
+		readingOut = false;
+	}
+
+	MapKeyOutputs();
 
 }
 
@@ -343,14 +336,16 @@ void CheckInputsOnRemove()
 		numberOfInputsLastFrame++;
 		lastFramesInputs++;
 	}
+	std::cout << numberOfInputsLastFrame << '\n';
 	for (int i = 0; i < numOfKeyCombos; i++)
 	{
 		if (SearchForElement(sentInputs, keyCombos[i].keyOutput, numberOfInputsLastFrame))
 		{
 			INPUT input = INPUT();
 			input.type = INPUT_KEYBOARD;
-			input.ki.wVk = keyCombos[i].keyOutput;
-			input.ki.dwFlags = KEYEVENTF_KEYUP;
+			input.ki.wVk = 0;
+			input.ki.wScan = keyCombos[i].keyOutput;
+			input.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
 			SendInput(1, &input, sizeof(INPUT));
 
 
@@ -362,7 +357,7 @@ void CheckInputsOnRemove()
 			}
 			else
 			{
-				
+
 				int* temp = new int[numberOfInputsLastFrame];
 				int j = 0;
 				for (int k = 0; k < numberOfInputsLastFrame + 1; k++)
@@ -417,11 +412,12 @@ void CheckInputsOnAdd()
 		{
 			INPUT input = INPUT();
 			input.type = INPUT_KEYBOARD;
-			input.ki.wVk = keyCombos[i].keyOutput;
-			input.ki.dwFlags = 0;
+			input.ki.wVk = 0;
+			input.ki.wScan = keyCombos[i].keyOutput;
+			input.ki.dwFlags = KEYEVENTF_SCANCODE;
 			//std::cout << "\nSending Input: " << (char)input.ki.wVk;
 			SendInput(1, &input, sizeof(INPUT));
-			if (!SearchForElement(sentInputs, input.ki.wVk, numberOfInputsLastFrame))
+			if (!SearchForElement(sentInputs, input.ki.wScan, numberOfInputsLastFrame))
 			{
 				int* temp = new int[numberOfInputsLastFrame + 1];
 				memcpy((void*)temp, sentInputs, (sizeof(int) * (numberOfInputsLastFrame + 1)));
@@ -432,6 +428,8 @@ void CheckInputsOnAdd()
 				sentInputs[numberOfInputsLastFrame] = keyCombos[i].keyOutput;
 				sentInputs[numberOfInputsLastFrame + 1] = NULL;
 			}
+			else
+				std::cout << "Skipping bc found already\n";
 		}
 
 	}
@@ -448,12 +446,14 @@ void CheckInputsOnAdd()
 
 
 
-void SetupKeyCombos()
+void MapKeyOutputs()
 {
-	numOfKeyCombos = 2;
-	keyCombos = new KeyCombo[2];
-	keyCombos[0].keyOutput = (int)'W';
-	keyCombos[0].requiredKeyPresses = new int[3]{ 'P', 'O', NULL };
-	keyCombos[1].keyOutput = 'A';
-	keyCombos[1].requiredKeyPresses = new int[3]{ 'U', 'I', NULL };
+	HKL keyboard = GetKeyboardLayout(0);
+	for (int i = 0; i < numOfKeyCombos; i++)
+	{
+		keyCombos[i].keyOutput = MapVirtualKeyExA(keyCombos[i].keyOutput, MAPVK_VK_TO_VSC, keyboard);
+	}
+	//UINT asc = MapVirtualKeyExA((int)'A', MAPVK_VK_TO_VSC, keyboard);
+	//UINT avc = MapVirtualKeyExA(asc, MAPVK_VSC_TO_VK, keyboard);
+	//char achar = MapVirtualKeyExA(avc, MAPVK_VK_TO_CHAR, keyboard);
 }
