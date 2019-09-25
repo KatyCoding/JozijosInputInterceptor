@@ -196,7 +196,7 @@ void MessageLoop()
 
 	while (!GetMessage(&msg, NULL, NULL, NULL))
 	{
-		CheckInputsOnAdd();
+		//CheckInputsOnAdd();
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
