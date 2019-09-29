@@ -12,6 +12,8 @@ void MessageLoop();
 bool SearchForElement(int*, int, int);
 int GetIndexOfFirstOccurance(int*, int, int);
 
+
+bool IsAnotherLargerComboBeingTriggered(KeyCombo smallerCombo);
 void TestKeyCombos();
 void CheckInputsOnAdd();
 void CheckInputsOnRemove();
@@ -115,7 +117,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 		}
 		if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)
 		{
-
+			//std::cout << "Key Up event for key: " << (char)key->vkCode << "\n";
 			if (!SearchForElement(pressed, key->vkCode, sizeOfPressed))
 			{
 				//CheckInputsOnRemove();
@@ -336,17 +338,31 @@ void CheckInputsOnRemove()
 		numberOfInputsLastFrame++;
 		lastFramesInputs++;
 	}
-	std::cout << numberOfInputsLastFrame << '\n';
+	//std::cout << numberOfInputsLastFrame << '\n';
+	
 	for (int i = 0; i < numOfKeyCombos; i++)
 	{
 		if (SearchForElement(sentInputs, keyCombos[i].keyOutput, numberOfInputsLastFrame))
 		{
+			int* iter = keyCombos[i].requiredKeyPresses;
+
+			while (*iter != NULL)
+			{
+				if (!SearchForElement(pressed, *iter, sizeOfPressed))
+				{
+					//std::cout << "\n breaking because character: " << (char)* iter << " was not found.";
+					break;
+
+				}
+				iter++;
+			}
+			if (*iter == NULL)
+				continue;
 			INPUT input = INPUT();
 			input.type = INPUT_KEYBOARD;
 			input.ki.wVk = 0;
 			input.ki.wScan = keyCombos[i].keyOutput;
 			input.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-			SendInput(1, &input, sizeof(INPUT));
 
 
 			if (numberOfInputsLastFrame == 1)
@@ -357,12 +373,13 @@ void CheckInputsOnRemove()
 			}
 			else
 			{
+				//std::cout<<"Removing"
 
 				int* temp = new int[numberOfInputsLastFrame];
 				int j = 0;
 				for (int k = 0; k < numberOfInputsLastFrame + 1; k++)
 				{
-					if (sentInputs[k] == keyCombos[k].keyOutput)
+					if (sentInputs[k] == keyCombos[i].keyOutput)
 						continue;
 					temp[j] = sentInputs[k];
 					j++;
@@ -374,6 +391,7 @@ void CheckInputsOnRemove()
 				sentInputs[numberOfInputsLastFrame - 1] = NULL;
 				delete[] temp;
 			}
+			SendInput(1, &input, sizeof(INPUT));
 
 		}
 	}
@@ -383,17 +401,9 @@ void CheckInputsOnRemove()
 
 void CheckInputsOnAdd()
 {
-	int numberOfInputsLastFrame = 0;
-	int* lastFramesInputs = sentInputs;
-
-	while (*lastFramesInputs != NULL)
-	{
-
-		numberOfInputsLastFrame++;
-		lastFramesInputs++;
-	}
-
-
+	
+	//std::cout << "Number of keys pressed: " << sizeOfPressed << "\n";
+	//std::cout <<"Number of sent inputs last frame: " << numberOfInputsLastFrame << "\n";
 	for (int i = 0; i < numOfKeyCombos; i++)
 	{
 		int* iter = keyCombos[i].requiredKeyPresses;
@@ -410,15 +420,25 @@ void CheckInputsOnAdd()
 		}
 		if (*iter == NULL)
 		{
+			//if(!IsAnotherLargerComboBeingTriggered(keyCombos[i])) do this:
 			INPUT input = INPUT();
 			input.type = INPUT_KEYBOARD;
 			input.ki.wVk = 0;
 			input.ki.wScan = keyCombos[i].keyOutput;
 			input.ki.dwFlags = KEYEVENTF_SCANCODE;
 			//std::cout << "\nSending Input: " << (char)input.ki.wVk;
-			SendInput(1, &input, sizeof(INPUT));
+			int numberOfInputsLastFrame = 0;
+			int* lastFramesInputs = sentInputs;
+
+			while (*lastFramesInputs != NULL)
+			{
+
+				numberOfInputsLastFrame++;
+				lastFramesInputs++;
+			}
 			if (!SearchForElement(sentInputs, input.ki.wScan, numberOfInputsLastFrame))
 			{
+				//std::cout << "Adding key: " << input.ki.wScan << " to sent inputs" << "\n";
 				int* temp = new int[numberOfInputsLastFrame + 1];
 				memcpy((void*)temp, sentInputs, (sizeof(int) * (numberOfInputsLastFrame + 1)));
 				delete[] sentInputs;
@@ -428,8 +448,10 @@ void CheckInputsOnAdd()
 				sentInputs[numberOfInputsLastFrame] = keyCombos[i].keyOutput;
 				sentInputs[numberOfInputsLastFrame + 1] = NULL;
 			}
-			else
-				std::cout << "Skipping bc found already\n";
+			//else
+			//	std::cout << "Skipping bc found already\n";
+			SendInput(1, &input, sizeof(INPUT));
+
 		}
 
 	}
@@ -442,7 +464,15 @@ void CheckInputsOnAdd()
 
 }
 
+bool IsAnotherLargerComboBeingTriggered(KeyCombo smallerCombo)
+{
+	//check through other combos to see if any of them contain the smaller combo:
+	//ex) if green+red = "F" but green+red+yellow = "E" we want the larger combo "E" to trigger instead of "F"
+	//we come here when "F" is triggered then we go through all the combos containing green+red and if any of them are being pressed we stop "F" from going
+	//by returning true here.
 
+	return false;
+}
 
 
 
