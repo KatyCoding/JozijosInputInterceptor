@@ -35,7 +35,7 @@ int main()
 {
 	sentInputs = new int[1]{ NULL };
 	//SetupKeyCombos();
-	HWND window;
+	//HWND window;
 	ReadKeyCombos();
 	//AllocConsole();
 	//window = FindWindowA("ConsoleWindowClass", NULL);
@@ -46,7 +46,7 @@ int main()
 
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{		
+{
 	if (nCode == HC_ACTION)
 	{
 
@@ -82,7 +82,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 				}
 			}
-			
+
 			if (SearchForElement(pressed, key->vkCode, sizeOfPressed))
 			{
 				CheckInputsOnAdd();
@@ -107,12 +107,13 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				pressed[sizeOfPressed - 1] = key->vkCode;
 				CheckInputsOnAdd();
 				delete[]temp;
+				temp = nullptr;
 
 			}
-		
+
 #pragma endregion
 
-		
+
 
 		}
 		if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)
@@ -128,7 +129,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			sizeOfPressed--;
 			if (sizeOfPressed == 0)
 			{
-				delete pressed;
+				delete[] pressed;
 			}
 			else {
 				int* temp = new int[sizeOfPressed];
@@ -143,14 +144,15 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				delete[] pressed;
 				pressed = new int[sizeOfPressed];
 				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed + 1));
-				delete[] temp;
+				if (temp != nullptr)
+					delete[] temp;
 
 			}
-			
+
 
 #pragma endregion
 
-			
+
 			CheckInputsOnRemove();
 		}
 
@@ -196,12 +198,14 @@ void MessageLoop()
 
 	MSG msg;
 
-	while (!GetMessage(&msg, NULL, NULL, NULL))
+
+	while (GetMessage(&msg, NULL, 0, 0) > 0)
 	{
 		//CheckInputsOnAdd();
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+
 }
 
 
@@ -259,7 +263,7 @@ void ReadKeyCombos()
 
 
 
-	char* cptr;
+
 	FILE* combos;
 	fopen_s(&combos, "./bin/combos.txt", "rt");
 	if (combos == nullptr)
@@ -269,7 +273,7 @@ void ReadKeyCombos()
 	fseek(combos, 0, SEEK_SET);
 
 	char* contents = (char*)malloc(sizeof(char) * size);//new char[size + 1];
-	fread(contents, sizeof(char), (size + 1) , combos);
+	fread(contents, sizeof(char), (size + 1), combos);
 	contents[size] = '\0';
 	std::cout << contents << "\n";
 	int numberOfCombosToRead = 1;
@@ -300,8 +304,8 @@ void ReadKeyCombos()
 		{
 			readingOut = true;
 			int strSize = inputs.length();
-			const char * chars = inputs.c_str();
-			keyCombos[index].requiredKeyPresses = new int[strSize+1];
+			const char* chars = inputs.c_str();
+			keyCombos[index].requiredKeyPresses = new int[strSize + 1];
 			for (int j = 0; j < strSize; j++)
 			{
 				keyCombos[index].requiredKeyPresses[j] = (int)chars[j];
@@ -339,7 +343,7 @@ void CheckInputsOnRemove()
 		lastFramesInputs++;
 	}
 	//std::cout << numberOfInputsLastFrame << '\n';
-	
+
 	for (int i = 0; i < numOfKeyCombos; i++)
 	{
 		if (SearchForElement(sentInputs, keyCombos[i].keyOutput, numberOfInputsLastFrame))
@@ -401,7 +405,7 @@ void CheckInputsOnRemove()
 
 void CheckInputsOnAdd()
 {
-	
+
 	//std::cout << "Number of keys pressed: " << sizeOfPressed << "\n";
 	//std::cout <<"Number of sent inputs last frame: " << numberOfInputsLastFrame << "\n";
 	for (int i = 0; i < numOfKeyCombos; i++)

@@ -1,0 +1,8 @@
+﻿  main.cpp
+  KeyCombo.cpp
+C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\JozijoInput\main.cpp(306,33): warning C4267:  'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 77 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  JozijoInput.vcxproj -> C:\Users\katyc\Documents\Projects\JozijosInputInterceptor\JozijoInput\x64\Release\JozijoInput.exe
