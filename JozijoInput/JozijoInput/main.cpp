@@ -27,7 +27,7 @@ int numOfKeyCombos;
 int sizeOfPressed = 0;
 int* pressed;
 bool recievedInputRecently = false;
-
+int triggerKey = 0;
 INPUT* inputsToSend;
 
 
@@ -39,7 +39,7 @@ int main()
 	ReadKeyCombos();
 	//AllocConsole();
 	//window = FindWindowA("ConsoleWindowClass", NULL);
-	//ShowWindow(window, 0);
+	//ShowWindow(window, SW_SHOWMINIMIZED);
 	MessageLoop();
 	return 0;
 }
@@ -82,12 +82,16 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 				}
 			}
-
-			if (SearchForElement(pressed, key->vkCode, sizeOfPressed))
+			if (key->vkCode == triggerKey)
 			{
 				CheckInputsOnAdd();
 				return CallNextHookEx(NULL, nCode, wParam, lParam);
 			}
+			//if (SearchForElement(pressed, key->vkCode, sizeOfPressed))
+			//{
+			//	CheckInputsOnAdd();
+			//	return CallNextHookEx(NULL, nCode, wParam, lParam);
+			//}
 #pragma region ResizePressedArray
 
 			sizeOfPressed++;
@@ -100,12 +104,12 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			else
 			{
 				int* temp = new int[sizeOfPressed];
-				memcpy((void*)temp, pressed, sizeof(int) * (sizeOfPressed - 1));
+				memcpy((void*)temp, pressed, sizeof(int) * (sizeOfPressed));
 				delete[] pressed;
 				pressed = new int[sizeOfPressed];
-				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed - 1));
+				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed));
 				pressed[sizeOfPressed - 1] = key->vkCode;
-				CheckInputsOnAdd();
+				//CheckInputsOnAdd();
 				delete[]temp;
 				temp = nullptr;
 
@@ -118,6 +122,11 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 		}
 		if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)
 		{
+			if (key->vkCode == triggerKey)
+			{
+				CheckInputsOnRemove();
+				return CallNextHookEx(NULL, nCode, wParam, lParam);
+			}
 			//std::cout << "Key Up event for key: " << (char)key->vkCode << "\n";
 			if (!SearchForElement(pressed, key->vkCode, sizeOfPressed))
 			{
@@ -143,7 +152,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				}
 				delete[] pressed;
 				pressed = new int[sizeOfPressed];
-				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed + 1));
+				memcpy((void*)pressed, temp, sizeof(int) * (sizeOfPressed));
 				if (temp != nullptr)
 					delete[] temp;
 
@@ -289,6 +298,7 @@ void ReadKeyCombos()
 	std::string inputs = "";
 	bool readingOut = false;
 	int index = 0;
+	bool readingTriggerKey = false;
 	for (int i = 0; i < size + 1; i++)
 	{
 		if (index >= numberOfCombosToRead)
@@ -305,7 +315,8 @@ void ReadKeyCombos()
 			readingOut = true;
 			int strSize = inputs.length();
 			const char* chars = inputs.c_str();
-			keyCombos[index].requiredKeyPresses = new int[strSize + 1];
+			int newSize = strSize + 1;
+			keyCombos[index].requiredKeyPresses = new int[newSize];
 			for (int j = 0; j < strSize; j++)
 			{
 				keyCombos[index].requiredKeyPresses[j] = (int)chars[j];
@@ -314,7 +325,19 @@ void ReadKeyCombos()
 			keyCombos[index].requiredKeyPresses[strSize] = NULL;
 			continue;
 		}
+		if (contents[i] == '\n')
+		{
+			readingTriggerKey = true;
+			readingOut = false;
+			continue;
 
+		}
+		if (readingTriggerKey)
+		{
+			triggerKey = contents[i];
+			readingTriggerKey = false;
+			continue;
+		}
 		if (!readingOut)
 		{
 
@@ -348,20 +371,21 @@ void CheckInputsOnRemove()
 	{
 		if (SearchForElement(sentInputs, keyCombos[i].keyOutput, numberOfInputsLastFrame))
 		{
-			int* iter = keyCombos[i].requiredKeyPresses;
+			//int* iter = keyCombos[i].requiredKeyPresses;
+			//
+			//while (*iter != NULL)
+			//{
+			//	if (!SearchForElement(pressed, *iter, sizeOfPressed))
+			//	{
+			//		//std::cout << "\n breaking because character: " << (char)* iter << " was not found.";
+			//		break;
+			//
+			//	}
+			//	iter++;
+			//}
+			//if (*iter == NULL)
+			//	continue;
 
-			while (*iter != NULL)
-			{
-				if (!SearchForElement(pressed, *iter, sizeOfPressed))
-				{
-					//std::cout << "\n breaking because character: " << (char)* iter << " was not found.";
-					break;
-
-				}
-				iter++;
-			}
-			if (*iter == NULL)
-				continue;
 			INPUT input = INPUT();
 			input.type = INPUT_KEYBOARD;
 			input.ki.wVk = 0;
@@ -391,7 +415,7 @@ void CheckInputsOnRemove()
 
 				delete[] sentInputs;
 				sentInputs = new int[numberOfInputsLastFrame];
-				memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame - 1));
+				memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame));
 				sentInputs[numberOfInputsLastFrame - 1] = NULL;
 				delete[] temp;
 			}
@@ -443,11 +467,13 @@ void CheckInputsOnAdd()
 			if (!SearchForElement(sentInputs, input.ki.wScan, numberOfInputsLastFrame))
 			{
 				//std::cout << "Adding key: " << input.ki.wScan << " to sent inputs" << "\n";
-				int* temp = new int[numberOfInputsLastFrame + 1];
-				memcpy((void*)temp, sentInputs, (sizeof(int) * (numberOfInputsLastFrame + 1)));
+				int newSize = numberOfInputsLastFrame + 1;
+				int* temp = new int[newSize];
+				memcpy((void*)temp, sentInputs, (sizeof(int) * (numberOfInputsLastFrame)));
 				delete[] sentInputs;
-				sentInputs = new int[numberOfInputsLastFrame + 2];
-				memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame + 1));
+				newSize++;
+				sentInputs = new int[newSize];
+				memcpy((void*)sentInputs, temp, sizeof(int) * (numberOfInputsLastFrame));
 				delete[] temp;
 				sentInputs[numberOfInputsLastFrame] = keyCombos[i].keyOutput;
 				sentInputs[numberOfInputsLastFrame + 1] = NULL;
